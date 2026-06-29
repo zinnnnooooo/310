@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>보라빛 Todo List</title>
+
+  <!-- CSS 파일 연결 -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="todo-container">
+    <section class="todo-card">
+      <header class="todo-header">
+        <p class="eyebrow">MY DAILY TASKS</p>
+        <h1>Todo List</h1>
+        <p class="description">오늘 해야 할 일을 차근차근 정리해 보세요.</p>
+      </header>
+
+      <!-- 할 일 입력 영역 -->
+      <form id="todo-form" class="todo-form">
+        <label for="todo-input" class="sr-only">새로운 할 일</label>
+
+        <input
+          id="todo-input"
+          class="todo-input"
+          type="text"
+          placeholder="할 일을 입력하세요"
+          autocomplete="off"
+          maxlength="60"
+        />
+
+        <button class="add-button" type="submit">추가</button>
+      </form>
+
+      <!-- 필터 탭 -->
+      <nav class="filter-tabs" aria-label="할 일 필터">
+        <button class="filter-button active" type="button" data-filter="all">
+          전체
+        </button>
+        <button class="filter-button" type="button" data-filter="active">
+          진행 중
+        </button>
+        <button class="filter-button" type="button" data-filter="completed">
+          완료
+        </button>
+      </nav>
+
+      <!-- JavaScript가 할 일 목록을 이곳에 추가합니다. -->
+      <ul id="todo-list" class="todo-list" aria-live="polite"></ul>
+
+      <!-- 목록이 비어 있을 때 보여줄 문구 -->
+      <div id="empty-message" class="empty-message">
+        <span class="empty-icon">✓</span>
+        <p>아직 등록된 할 일이 없습니다.</p>
+      </div>
+
+      <footer class="todo-footer">
+        <p>
+          남은 할 일
+          <strong id="remaining-count">0</strong>개
+        </p>
+      </footer>
+    </section>
+  </main>
+
+  <!-- JavaScript 파일 연결 -->
+  <script src="script.js"></script>
+</body>
+</html>
