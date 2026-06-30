@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MBTI 연애 성향 테스트</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-deco" aria-hidden="true">
+    <span class="deco deco-heart heart-1">♥</span>
+    <span class="deco deco-heart heart-2">♥</span>
+    <span class="deco deco-heart heart-3">♥</span>
+    <span class="deco deco-star star-1">✦</span>
+    <span class="deco deco-star star-2">✧</span>
+    <span class="deco deco-star star-3">✦</span>
+    <span class="deco deco-bubble bubble-1">LOVE</span>
+    <span class="deco deco-bubble bubble-2">MBTI</span>
+    <span class="deco deco-circle circle-1"></span>
+    <span class="deco deco-circle circle-2"></span>
+    <span class="deco deco-circle circle-3"></span>
+  </div>
+
+  <main class="app">
+    <section class="hero clay-card">
+      <span class="badge">LOVE MBTI TEST</span>
+      <h1>MBTI 연애 성향 테스트</h1>
+      <p>12개의 질문에 답하고 나만의 연애 스타일과 궁합을 확인해보세요.</p>
+    </section>
+
+    <form id="testForm" class="clay-card test-card">
+      <div id="questionList"></div>
+      <button type="submit" class="primary-btn">저장하기</button>
+    </form>
+
+    <section id="result" class="clay-card result hidden">
+      <span class="badge">RESULT</span>
+      <h2 id="resultTitle"></h2>
+      <h3 id="mbtiType"></h3>
+
+      <div class="score-card">
+        <p>연애 만족도</p>
+        <strong id="loveScore"></strong>
+        <div class="score-bar">
+          <div id="scoreFill"></div>
+        </div>
+      </div>
+
+      <div class="result-grid three">
+        <div class="mini-card">
+          <h4>연애 키워드</h4>
+          <p id="keywords"></p>
+        </div>
+        <div class="mini-card">
+          <h4>잘 맞는 MBTI</h4>
+          <p id="bestMatch"></p>
+        </div>
+        <div class="mini-card">
+          <h4>어려운 MBTI</h4>
+          <p id="hardMatch"></p>
+        </div>
+      </div>
+
+      <div class="mini-card wide">
+        <h4>연애 스타일</h4>
+        <p id="styleText"></p>
+      </div>
+
+      <div class="result-grid">
+        <div class="mini-card">
+          <h4>장점</h4>
+          <p id="strength"></p>
+        </div>
+        <div class="mini-card">
+          <h4>단점</h4>
+          <p id="weakness"></p>
+        </div>
+      </div>
+
+      <button id="resetBtn" class="secondary-btn">다시 하기</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
