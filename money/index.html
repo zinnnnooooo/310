@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>환율 계산기</title>
+
+  <!-- 모바일 웹앱 설정 -->
+ <meta name="theme-color" content="#7C3AED">
+ <meta name="mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-title" content="환율계산기">
+ <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+ <!-- 파비콘 / 앱 아이콘 -->
+ <link rel="icon" href="logo.png">
+ <link rel="apple-touch-icon" href="logo.png">
+
+  <style>
+    /* 전체 기본 설정 */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* 화면 전체 스타일 */
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', Arial, sans-serif;
+      background: #ffffff;
+      color: #111827;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* 전체 앱 감싸는 영역 */
+    .app {
+      width: 100%;
+      max-width: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 24px 16px 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+      animation: fadeSlide 0.8s ease forwards;
+    }
+
+    /* 배경 지폐 오브제 공통 스타일 */
+    .money-object {
+      position: absolute;
+      width: 154px;
+      height: 92px;
+      border-radius: 24px;
+      z-index: 0;
+      opacity: 0.62;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #1d4ed8;
+      background: linear-gradient(135deg, #dbeafe 0%, #ffffff 52%, #bfdbfe 100%);
+      border: 2px solid rgba(37, 99, 235, 0.26);
+      box-shadow: 0 18px 42px rgba(37, 99, 235, 0.22);
+      animation: floatMove 4s ease-in-out infinite;
+      user-select: none;
+      pointer-events: none;
+      --object-rotate: 0deg;
+    }
+
+    /* 지폐 안쪽 원형 장식 */
+    .money-object::before {
+      content: '';
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px dashed rgba(37, 99, 235, 0.38);
+      opacity: 0.95;
+    }
+
+    /* 지폐 왼쪽 작은 장식 */
+    .money-object::after {
+      content: '';
+      position: absolute;
+      left: 14px;
+      width: 12px;
+      height: 44px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.24);
+      box-shadow: 110px 0 0 rgba(37, 99, 235, 0.16);
+    }
+
+    .object-1 {
+      top: 6%;
+      left: -34px;
+      --object-rotate: -14deg;
+      background: linear-gradient(135deg, #dbeafe 0%, #ffffff 50%, #bfdbfe 100%);
+    }
+
+    .object-2 {
+      top: 18%;
+      right: -42px;
+      color: #2563eb;
+      animation-delay: 0.5s;
+      --object-rotate: 12deg;
+      background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 48%, #93c5fd 100%);
+    }
+
+    .object-3 {
+      /* 유로 지폐 오브제를 하단에서 상단 배경 근처로 이동 */
+      top: 30%;
+      left: -48px;
+      color: #0f766e;
+      animation-delay: 1s;
+      --object-rotate: 10deg;
+      background: linear-gradient(135deg, #ccfbf1 0%, #ffffff 52%, #99f6e4 100%);
+      border-color: rgba(15, 118, 110, 0.24);
+      box-shadow: 0 18px 42px rgba(15, 118, 110, 0.18);
+    }
+
+    .object-4 {
+      /* 파운드 지폐 오브제를 하단에서 상단 배경 근처로 이동 */
+      top: 38%;
+      right: -46px;
+      color: #7c3aed;
+      animation-delay: 1.5s;
+      --object-rotate: -10deg;
+      background: linear-gradient(135deg, #ede9fe 0%, #ffffff 52%, #ddd6fe 100%);
+      border-color: rgba(124, 58, 237, 0.24);
+      box-shadow: 0 18px 42px rgba(124, 58, 237, 0.18);
+    }
+
+    .object-5 {
+      /* 엔화 지폐 오브제는 하단 왼쪽 배경에 배치 */
+      bottom: 7%;
+      left: -42px;
+      color: #b45309;
+      animation-delay: 2s;
+      --object-rotate: 11deg;
+      background: linear-gradient(135deg, #fef3c7 0%, #ffffff 52%, #fde68a 100%);
+      border-color: rgba(180, 83, 9, 0.24);
+      box-shadow: 0 18px 42px rgba(180, 83, 9, 0.16);
+    }
+
+    .object-6 {
+      /* 위안화 지폐 오브제는 하단 오른쪽 배경에 배치 */
+      bottom: 12%;
+      right: -44px;
+      color: #dc2626;
+      animation-delay: 2.5s;
+      --object-rotate: -12deg;
+      background: linear-gradient(135deg, #fee2e2 0%, #ffffff 52%, #fecaca 100%);
+      border-color: rgba(220, 38, 38, 0.22);
+      box-shadow: 0 18px 42px rgba(220, 38, 38, 0.16);
+    }
+
+    /* 실제 콘텐츠 영역 */
+    .content {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* 상단 제목 영역 */
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-top: 10px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 9px 16px;
+      border-radius: 999px;
+      background: #eaf3ff;
+      color: #2563eb;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(36px, 10.5vw, 46px);
+      line-height: 1.12;
+      font-weight: 900;
+      letter-spacing: -1.4px;
+      margin-bottom: 12px;
+    }
+
+    .description {
+      font-size: clamp(16px, 4.2vw, 18px);
+      color: #6b7280;
+      line-height: 1.65;
+      word-break: keep-all;
+    }
+
+    /* 카드 디자인 */
+    .card {
+      width: 100%;
+      background: #ffffff;
+      border-radius: 26px;
+      padding: 22px 18px;
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.12);
+      border: 1px solid #edf2ff;
+      margin-bottom: 18px;
+      animation: scaleIn 0.7s ease forwards;
+    }
+
+    /* 실시간 환율 카드 제목 영역 */
+    .rate-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #eef4ff;
+    }
+
+    .rate-header-top {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .rate-title-group h2 {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .rate-title-group p {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6b7280;
+      line-height: 1.45;
+    }
+
+    .live-badge {
+      flex-shrink: 0;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .rate-time-box {
+      margin-top: 12px;
+      padding: 11px 12px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f8fbff, #eef6ff);
+      color: #4b5563;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+      white-space: pre-line;
+      text-align: center;
+    }
+
+    /* 환율 목록 */
+    .rate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .rate-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 16px;
+      min-height: 76px;
+      border-radius: 20px;
+      background: #f8fbff;
+      border: 1px solid #edf4ff;
+    }
+
+    .rate-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .currency-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 15px;
+      background: #eaf3ff;
+      color: #2563eb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 22px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+
+    .rate-name {
+      display: block;
+      font-size: 16px;
+      font-weight: 900;
+      color: #374151;
+      margin-bottom: 4px;
+    }
+
+    .rate-sub {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: #9ca3af;
+    }
+
+    .rate-value {
+      font-size: clamp(18px, 5vw, 22px);
+      font-weight: 900;
+      color: #2563eb;
+      white-space: nowrap;
+    }
+
+    .update-time {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* 경제 뉴스 영역 */
+    .news-header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+
+    .news-header h2 {
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #111827;
+      margin-bottom: 6px;
+    }
+
+    .news-header p {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6b7280;
+      line-height: 1.45;
+    }
+
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .news-item {
+      display: block;
+      padding: 16px;
+      border-radius: 20px;
+      background: #f8fbff;
+      border: 1px solid #edf4ff;
+      color: inherit;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .news-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+    }
+
+    .news-title {
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+      color: #1f2937;
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    .news-time {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #9ca3af;
+    }
+
+    .news-update-time {
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #9ca3af;
+      text-align: center;
+    }
+
+    /* 버튼 스타일 */
+    .main-button {
+      width: 100%;
+      min-height: 60px;
+      border: none;
+      border-radius: 20px;
+      padding: 19px 20px;
+      background: #2563eb;
+      color: white;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .refresh-button {
+      width: 100%;
+      min-height: 52px;
+      margin-top: 18px;
+      border: none;
+      border-radius: 18px;
+      padding: 15px 16px;
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .refresh-button:hover {
+      background: #dbeafe;
+      transform: translateY(-1px);
+    }
+
+    .refresh-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .main-button:hover {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 18px 36px rgba(37, 99, 235, 0.35);
+    }
+
+    .main-button:active {
+      transform: scale(0.97);
+    }
+
+    /* 계산 화면 */
+    .calculator-section {
+      display: none;
+      animation: fadeSlide 0.5s ease forwards;
+    }
+
+    .calculator-section.active {
+      display: block;
+    }
+
+    .input-label {
+      display: block;
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #374151;
+    }
+
+    .amount-input {
+      width: 100%;
+      min-height: 64px;
+      border: 2px solid #e5edff;
+      border-radius: 20px;
+      padding: 18px;
+      font-size: 24px;
+      font-weight: 800;
+      outline: none;
+      margin-bottom: 18px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .amount-input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .result-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .result-item {
+      min-height: 68px;
+      padding: 18px 16px;
+      border-radius: 20px;
+      background: #f8fbff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #374151;
+    }
+
+    .result-value {
+      font-size: 20px;
+      font-weight: 900;
+      color: #2563eb;
+      white-space: nowrap;
+    }
+
+    .back-button {
+      margin-top: 14px;
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 14px;
+      touch-action: manipulation;
+    }
+
+    .error-message {
+      text-align: center;
+      color: #ef4444;
+      font-weight: 800;
+      line-height: 1.6;
+    }
+
+    /* 등장 애니메이션 */
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 카드 확대 애니메이션 */
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /* 배경 오브제 둥실 애니메이션 */
+    @keyframes floatMove {
+      0%, 100% {
+        transform: translateY(0) rotate(var(--object-rotate));
+      }
+      50% {
+        transform: translateY(-18px) rotate(calc(var(--object-rotate) + 5deg)) scale(1.04);
+      }
+    }
+
+
+    /* 모바일 반응형 - 모바일에서만 전체 UI를 크게 표시 */
+    @media (max-width: 767px) {
+      .app {
+        padding: 34px 20px 48px;
+      }
+
+      .header {
+        margin-bottom: 30px;
+        padding-top: 18px;
+      }
+
+      .badge {
+        padding: 11px 18px;
+        font-size: 16px;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        font-size: clamp(44px, 13vw, 58px);
+        line-height: 1.08;
+        letter-spacing: -1.8px;
+      }
+
+      .description {
+        font-size: clamp(18px, 4.9vw, 21px);
+        line-height: 1.7;
+      }
+
+      .card {
+        padding: 28px 22px;
+        border-radius: 32px;
+        margin-bottom: 22px;
+      }
+
+      .rate-title-group h2,
+      .news-header h2 {
+        font-size: 24px;
+      }
+
+      .rate-title-group p,
+      .news-header p,
+      .rate-time-box,
+      .news-update-time,
+      .update-time {
+        font-size: 14px;
+      }
+
+      .live-badge {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+
+      .rate-list,
+      .news-list,
+      .result-box {
+        gap: 16px;
+      }
+
+      .rate-item,
+      .result-item {
+        min-height: 88px;
+        padding: 22px 18px;
+        border-radius: 24px;
+      }
+
+      .currency-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 17px;
+        font-size: 26px;
+      }
+
+      .rate-name,
+      .result-title {
+        font-size: 18px;
+      }
+
+      .rate-sub {
+        font-size: 15px;
+      }
+
+      .rate-value,
+      .result-value {
+        font-size: clamp(21px, 5.8vw, 26px);
+      }
+
+      .news-item {
+        padding: 20px;
+        border-radius: 24px;
+      }
+
+      .news-title {
+        font-size: 17px;
+      }
+
+      .news-time {
+        font-size: 14px;
+      }
+
+      .main-button {
+        min-height: 68px;
+        border-radius: 24px;
+        font-size: 21px;
+      }
+
+      .refresh-button,
+      .back-button {
+        min-height: 60px;
+        border-radius: 22px;
+        font-size: 17px;
+      }
+
+      .input-label {
+        font-size: 17px;
+      }
+
+      .amount-input {
+        min-height: 74px;
+        border-radius: 24px;
+        font-size: 28px;
+      }
+
+      .money-object{
+        width: 190px;
+        height: 114px;
+        font-size: 46px;
+        border-radius: 28px;
+        opacity: 0.72;
+      }
+
+      .money-object::before{
+        width: 54px;
+        height: 54px;
+      }
+
+      .money-object::after{
+        height: 52px;
+      }
+
+      .object-1{top:4%; left:-52px;}
+      .object-2{top:15%; right:-56px;}
+      .object-3{top:28%; left:-60px;}
+      .object-4{top:38%; right:-60px;}
+      .object-5{bottom:5%; left:-58px;}
+      .object-6{bottom:10%; right:-58px;}
+    }
+
+    /* 작은 모바일 화면 최적화 */
+    @media (max-width: 380px) {
+      .app {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .card {
+        padding: 20px 15px;
+      }
+
+      .rate-item,
+      .result-item {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .currency-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+      }
+
+      .object-3 {
+        top: 32%;
+        left: -62px;
+      }
+
+      .object-4 {
+        top: 42%;
+        right: -62px;
+      }
+
+      .object-5 {
+        bottom: 5%;
+        left: -66px;
+      }
+
+      .object-6 {
+        bottom: 11%;
+        right: -66px;
+      }
+    }
+
+    /* 태블릿 이상 화면 */
+    @media (min-width: 768px) {
+      body {
+        align-items: center;
+      }
+
+      .app {
+        max-width: 520px;
+        padding: 44px 22px;
+        justify-content: center;
+      }
+
+      h1 {
+        font-size: 46px;
+      }
+
+      .description {
+        font-size: 16px;
+      }
+
+      .card {
+        padding: 24px;
+      }
+
+      .money-object {
+        width: 178px;
+        height: 106px;
+        font-size: 40px;
+        opacity: 0.66;
+      }
+
+      .object-3 {
+        top: 28%;
+        left: -70px;
+      }
+
+      .object-4 {
+        top: 40%;
+        right: -70px;
+      }
+
+      .object-5 {
+        bottom: 9%;
+        left: -72px;
+      }
+
+      .object-6 {
+        bottom: 15%;
+        right: -72px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <!-- 귀여운 지폐형 돈 관련 배경 오브제 -->
+    <div class="money-object object-1">₩</div>
+    <div class="money-object object-2">$</div>
+    <div class="money-object object-3">€</div>
+    <div class="money-object object-4">£</div>
+    <div class="money-object object-5">¥</div>
+    <div class="money-object object-6">元</div>
+
+    <section class="content">
+      <!-- 메인 화면 -->
+      <div id="mainPage">
+        <div class="header">
+          <div class="badge">실시간 환율 확인</div>
+          <h1>환율 계산기</h1>
+          <p class="description">
+            원달러, 파운드, 유로, 엔화, 위안화 환율을 한눈에 확인하고<br />
+            원화를 외화로 간단하게 계산해보세요.
+          </p>
+        </div>
+
+        <div class="card">
+          <!-- 실시간 환율 제목과 기준 시간 안내 영역 -->
+          <div class="rate-header">
+            <div class="rate-header-top">
+              <div class="rate-title-group">
+                <h2>💱 실시간 환율</h2>
+                <p>달러, 파운드, 유로, 엔화, 위안화 기준 환율입니다.</p>
+              </div>
+              <span class="live-badge">LIVE</span>
+            </div>
+
+            <div id="rateTimeBox" class="rate-time-box">
+              최신 환율 기준 시간을 확인하는 중입니다.
+            </div>
+          </div>
+
+          <div id="rateList" class="rate-list">
+            <p class="description" style="text-align:center;">환율 정보를 불러오는 중...</p>
+          </div>
+
+          <p id="updateTime" class="update-time"></p>
+
+          <button type="button" class="refresh-button" onclick="refreshExchangeRates()">
+            실시간 환율 새로고침
+          </button>
+        </div>
+
+        <div class="card">
+          <!-- 환율 관련 경제 뉴스 영역 -->
+          <div class="news-header">
+            <h2>📰 환율 경제 뉴스</h2>
+            <p>2026년 6월 이후 환율 관련 경제 기사 3건을 보여줍니다.</p>
+          </div>
+
+          <div id="newsList" class="news-list">
+            <p class="description" style="text-align:center;">경제 뉴스를 불러오는 중...</p>
+          </div>
+
+          <p id="newsUpdateTime" class="news-update-time"></p>
+
+          <button type="button" class="refresh-button" onclick="refreshExchangeNews()">
+            경제 뉴스 새로고침
+          </button>
+        </div>
+
+        <button type="button" class="main-button" onclick="showCalculator()">
+          환율 계산하기
+        </button>
+      </div>
+
+      <!-- 계산 화면 -->
+      <div id="calculatorPage" class="calculator-section">
+        <div class="header">
+          <div class="badge">원화 → 외화</div>
+          <h1>금액 계산</h1>
+          <p class="description">
+            원화 금액을 입력하면 달러, 파운드, 유로, 엔화, 위안화로 환산됩니다.
+          </p>
+        </div>
+
+        <div class="card">
+          <label class="input-label" for="wonInput">원화 금액 입력</label>
+
+          <input
+            id="wonInput"
+            class="amount-input"
+            type="number"
+            placeholder="예: 10000"
+            oninput="calculateMoney()"
+          />
+
+          <div class="result-box">
+            <div class="result-item">
+              <span class="result-title">달러 USD</span>
+              <span id="usdResult" class="result-value">$0.00</span>
+            </div>
+
+            <div class="result-item">
+              <span class="result-title">파운드 GBP</span>
+              <span id="gbpResult" class="result-value">£0.00</span>
+            </div>
+
+            <div class="result-item">
+              <span class="result-title">유로 EUR</span>
+              <span id="eurResult" class="result-value">€0.00</span>
+            </div>
+
+            <div class="result-item">
+              <span class="result-title">엔화 JPY</span>
+              <span id="jpyResult" class="result-value">¥0</span>
+            </div>
+
+            <div class="result-item">
+              <span class="result-title">위안화 CNY</span>
+              <span id="cnyResult" class="result-value">¥0.00</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="recalculateButton" class="main-button">
+          다시 계산하기
+        </button>
+
+        <button type="button" class="back-button" onclick="showMainPage()">
+          처음 화면으로 돌아가기
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // 환율 데이터를 저장할 전역 변수
+    let exchangeRates = {
+      usd: 0,
+      gbp: 0,
+      eur: 0,
+      jpy: 0,
+      cny: 0
+    };
+
+    // 경제 뉴스가 자동으로 바뀌도록 사용할 타이머 변수
+    let newsTimer = null;
+
+    // 페이지가 열리면 바로 환율 정보를 가져오고 버튼 이벤트를 연결하는 함수 실행
+    window.onload = function () {
+      loadExchangeRates();
+      loadExchangeNews();
+      connectButtonEvents();
+
+      // 3분마다 최신 경제 뉴스를 다시 불러와서 기사 목록이 자동으로 변경되게 합니다.
+      newsTimer = setInterval(function () {
+        loadExchangeNews();
+      }, 180000);
+    };
+
+    // 버튼 클릭 이벤트를 연결하는 함수
+    function connectButtonEvents() {
+      const recalculateButton = document.getElementById('recalculateButton');
+
+      // 다시 계산하기 버튼이 확실하게 작동하도록 addEventListener로 연결
+      recalculateButton.addEventListener('click', function () {
+        refreshCalculation();
+      });
+    }
+
+    // Apps Script에서 최신 환율 데이터를 가져오는 함수
+    function loadExchangeRates() {
+      const refreshButton = document.querySelector('.refresh-button');
+
+      // 환율을 가져오는 동안 안내 문구 표시
+      document.getElementById('rateList').innerHTML =
+        '<p class="description" style="text-align:center;">실시간 환율 정보를 불러오는 중...</p>';
+      document.getElementById('updateTime').innerText = '';
+      document.getElementById('rateTimeBox').innerText = '최신 환율 기준 시간을 확인하는 중입니다.';
+
+      // 새로고침 버튼이 있으면 잠시 비활성화
+      if (refreshButton) {
+        refreshButton.disabled = true;
+        refreshButton.innerText = '환율 불러오는 중...';
+      }
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          // 새로고침 버튼을 다시 활성화
+          if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.innerText = '실시간 환율 새로고침';
+          }
+
+          // 오류가 있는 경우 안내 메시지 표시
+          if (data.error) {
+            document.getElementById('rateList').innerHTML =
+              '<p class="error-message">' + data.message + '</p>';
+            return;
+          }
+
+          // 가져온 환율 데이터를 전역 변수에 저장
+          exchangeRates.usd = data.usd;
+          exchangeRates.gbp = data.gbp;
+          exchangeRates.eur = data.eur;
+          exchangeRates.jpy = data.jpy;
+          exchangeRates.cny = data.cny;
+
+          // 화면에 환율 표시
+          showExchangeRates(data);
+
+          // 계산 화면에 입력값이 있으면 최신 환율로 다시 계산
+          calculateMoney(false);
+        })
+        .withFailureHandler(function () {
+          // 새로고침 버튼을 다시 활성화
+          if (refreshButton) {
+            refreshButton.disabled = false;
+            refreshButton.innerText = '실시간 환율 새로고침';
+          }
+
+          // 서버 통신 실패 시 안내 메시지 표시
+          document.getElementById('rateList').innerHTML =
+            '<p class="error-message">서버와 연결하지 못했습니다.</p>';
+        })
+        .getExchangeRates();
+    }
+
+    // 사용자가 직접 최신 환율을 다시 가져오는 함수
+    function refreshExchangeRates() {
+      loadExchangeRates();
+    }
+
+    // 환율 정보를 화면에 보여주는 함수
+    function showExchangeRates(data) {
+      const rateList = document.getElementById('rateList');
+
+      rateList.innerHTML = `
+        <div class="rate-item">
+          <div class="rate-info">
+            <span class="currency-icon">$</span>
+            <div>
+              <span class="rate-name">미국 달러</span>
+              <span class="rate-sub">1 USD 기준</span>
+            </div>
+          </div>
+          <span class="rate-value">${formatWon(data.usd)}원</span>
+        </div>
+
+        <div class="rate-item">
+          <div class="rate-info">
+            <span class="currency-icon">£</span>
+            <div>
+              <span class="rate-name">영국 파운드</span>
+              <span class="rate-sub">1 GBP 기준</span>
+            </div>
+          </div>
+          <span class="rate-value">${formatWon(data.gbp)}원</span>
+        </div>
+
+        <div class="rate-item">
+          <div class="rate-info">
+            <span class="currency-icon">€</span>
+            <div>
+              <span class="rate-name">유로</span>
+              <span class="rate-sub">1 EUR 기준</span>
+            </div>
+          </div>
+          <span class="rate-value">${formatWon(data.eur)}원</span>
+        </div>
+
+        <div class="rate-item">
+          <div class="rate-info">
+            <span class="currency-icon">¥</span>
+            <div>
+              <span class="rate-name">일본 엔화</span>
+              <span class="rate-sub">100 JPY 기준</span>
+            </div>
+          </div>
+          <span class="rate-value">${formatWon(data.jpy * 100)}원</span>
+        </div>
+
+        <div class="rate-item">
+          <div class="rate-info">
+            <span class="currency-icon">元</span>
+            <div>
+              <span class="rate-name">중국 위안화</span>
+              <span class="rate-sub">1 CNY 기준</span>
+            </div>
+          </div>
+          <span class="rate-value">${formatWon(data.cny)}원</span>
+        </div>
+      `;
+
+      document.getElementById('rateTimeBox').innerText =
+        '최근 업데이트: ' + data.updateTime + '\n다음 업데이트: ' + data.nextUpdateTime;
+
+      document.getElementById('updateTime').innerText =
+        '표시된 금액은 원화(KRW) 기준 환산값입니다.';
+    }
+
+    // 원화 금액을 외화로 계산하는 함수
+    function calculateMoney(showAlert = true) {
+      const wonInput = document.getElementById('wonInput');
+      const wonAmount = Number(wonInput.value);
+
+      // 환율 정보가 아직 준비되지 않았다면 계산하지 않음
+      if (!exchangeRates.usd || !exchangeRates.gbp || !exchangeRates.eur || !exchangeRates.jpy || !exchangeRates.cny) {
+        if (showAlert) {
+          alert('환율 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      // 입력값이 없거나 0 이하이면 결과를 초기화
+      if (!wonAmount || wonAmount <= 0) {
+        document.getElementById('usdResult').innerText = '$0.00';
+        document.getElementById('gbpResult').innerText = '£0.00';
+        document.getElementById('eurResult').innerText = '€0.00';
+        document.getElementById('jpyResult').innerText = '¥0';
+        document.getElementById('cnyResult').innerText = '¥0.00';
+        return;
+      }
+
+      // 원화를 달러, 파운드, 유로, 엔화, 위안화로 환산
+      const usdAmount = wonAmount / exchangeRates.usd;
+      const gbpAmount = wonAmount / exchangeRates.gbp;
+      const eurAmount = wonAmount / exchangeRates.eur;
+      const jpyAmount = wonAmount / exchangeRates.jpy;
+      const cnyAmount = wonAmount / exchangeRates.cny;
+
+      // 계산 결과 표시
+      document.getElementById('usdResult').innerText = '$' + usdAmount.toFixed(2);
+      document.getElementById('gbpResult').innerText = '£' + gbpAmount.toFixed(2);
+      document.getElementById('eurResult').innerText = '€' + eurAmount.toFixed(2);
+      document.getElementById('jpyResult').innerText = '¥' + Math.round(jpyAmount).toLocaleString('ko-KR');
+      document.getElementById('cnyResult').innerText = '¥' + cnyAmount.toFixed(2);
+    }
+
+    // Apps Script에서 최신 환율 경제 뉴스를 가져오는 함수
+    function loadExchangeNews() {
+      const newsList = document.getElementById('newsList');
+      const newsUpdateTime = document.getElementById('newsUpdateTime');
+
+      // 뉴스 로딩 중 안내 문구 표시
+      newsList.innerHTML = '<p class="description" style="text-align:center;">경제 뉴스를 불러오는 중...</p>';
+      newsUpdateTime.innerText = '';
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          // 오류가 있는 경우 안내 메시지 표시
+          if (data.error) {
+            newsList.innerHTML = '<p class="error-message">' + data.message + '</p>';
+            return;
+          }
+
+          // 뉴스가 없으면 안내 메시지 표시
+          if (!data.news || data.news.length === 0) {
+            newsList.innerHTML = '<p class="description" style="text-align:center;">표시할 뉴스가 없습니다.</p>';
+            return;
+          }
+
+          // 뉴스 3건을 카드 형태로 표시
+          newsList.innerHTML = data.news.map(function (news) {
+            return `
+              <a class="news-item" href="${news.link}" target="_blank" rel="noopener noreferrer">
+                <span class="news-title">${escapeHtml(news.title)}</span>
+                <span class="news-time">${news.pubDate ? news.pubDate + ' 기준' : '최신 기사'}</span>
+              </a>
+            `;
+          }).join('');
+
+          newsUpdateTime.innerText = '뉴스 새로고침: ' + data.updateTime;
+        })
+        .withFailureHandler(function () {
+          // 서버 통신 실패 시 안내 메시지 표시
+          newsList.innerHTML = '<p class="error-message">뉴스 서버와 연결하지 못했습니다.</p>';
+        })
+        .getExchangeNews();
+    }
+
+    // 사용자가 직접 경제 뉴스를 새로고침하는 함수
+    function refreshExchangeNews() {
+      loadExchangeNews();
+    }
+
+    // 뉴스 제목에 특수 문자가 들어가도 안전하게 표시하는 함수
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    // 다시 계산하기 버튼을 눌렀을 때 실행되는 함수
+    function refreshCalculation() {
+      const recalculateButton = document.getElementById('recalculateButton');
+
+      // 버튼이 눌렸다는 느낌을 주기 위한 짧은 애니메이션
+      recalculateButton.style.transform = 'scale(0.97)';
+
+      setTimeout(function () {
+        recalculateButton.style.transform = '';
+      }, 120);
+
+      // 최신 환율을 다시 받아온 뒤 현재 입력된 금액으로 다시 계산
+      loadExchangeRates();
+    }
+
+    // 계산 화면으로 이동하는 함수
+    function showCalculator() {
+      document.getElementById('mainPage').style.display = 'none';
+      document.getElementById('calculatorPage').classList.add('active');
+    }
+
+    // 메인 화면으로 돌아가는 함수
+    function showMainPage() {
+      document.getElementById('calculatorPage').classList.remove('active');
+      document.getElementById('mainPage').style.display = 'block';
+    }
+
+    // 원화 숫자에 콤마를 붙여주는 함수
+    function formatWon(number) {
+      return Math.round(number).toLocaleString('ko-KR');
+    }
+  </script>
+</body>
+</html>
