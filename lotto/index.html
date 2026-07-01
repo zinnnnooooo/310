@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>럭키비키 로또번호추첨</title>
+   <!-- 모바일 웹앱 설정 -->
+   <meta name="theme-color" content="#7C3AED">
+   <meta name="mobile-web-app-capable" content="yes">
+   <meta name="apple-mobile-web-app-capable" content="yes">
+   <meta name="apple-mobile-web-app-title" content="럭키비키 로또번호추첨">
+   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  
+   <!-- 파비콘 / 앱 아이콘 -->
+   <link rel="icon" href="logo.png">
+   <link rel="apple-touch-icon" href="logo.png">
+     
+
+  <!-- 애플 느낌의 둥글고 깔끔한 폰트를 구글 폰트에서 불러옴 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================
+     0. 공통 변수 (색상 / 그림자 / 곡률 등을 한 곳에 모아둠)
+     ============================================ */
+  :root{
+    /* 배경 그라데이션에 쓰이는 아주 연한 색들 */
+    --bg-white:#f7fbfc;
+    --bg-mint:#e4f5ee;
+    --bg-sky:#e6f1fb;
+
+    /* 유리(글래스) 표현에 쓰이는 흰색 계열 투명도 */
+    --glass-fill: rgba(255,255,255,0.38);
+    --glass-fill-strong: rgba(255,255,255,0.52);
+    --glass-border: rgba(255,255,255,0.92);
+    --glass-shadow: 0 8px 32px rgba(31,58,89,0.12);
+
+    /* 메인 액션 버튼에 쓰이는 블루·퍼플·그린 그라데이션 */
+    --accent-blue:#5b8def;
+    --accent-purple:#9b7bf0;
+    --accent-green:#5fd6a8;
+
+    /* number 범위별 ball(볼) 색상 - 실제 로또볼 색을 참고한 은은한 톤 */
+    --ball-1-10:#f6c445;   /* 노랑 */
+    --ball-11-20:#5b8def;  /* 파랑 */
+    --ball-21-30:#f16b6b;  /* 빨강 */
+    --ball-31-40:#9aa3ad;  /* 회색 */
+    --ball-41-45:#5fd6a8;  /* 초록 */
+
+    --text-main:#1f2d3d;
+    --text-sub:#5c6b7a;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:'Plus Jakarta Sans','SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--text-main);
+    overflow-x:hidden;
+  }
+
+  /* ============================================
+     1. 배경 레이어 (참고 이미지 기반: 맑은 물빛 + 유리 네잎클로버 + 프리즘 반사)
+     ============================================ */
+  body{
+    position:relative;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.72) 22%, transparent 48%),
+      radial-gradient(circle at 82% 18%, rgba(166,221,255,0.62) 0%, transparent 42%),
+      radial-gradient(circle at 22% 82%, rgba(180,246,203,0.50) 0%, transparent 44%),
+      linear-gradient(135deg, #fafdff 0%, #edf8ff 34%, #f7fff9 66%, #dff3ff 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 16px;
+  }
+
+  body::before{
+    content:"";
+    position:fixed;
+    inset:-18%;
+    z-index:0;
+    pointer-events:none;
+    background:
+      linear-gradient(118deg, rgba(255,255,255,0.78) 0 16%, transparent 17% 100%),
+      radial-gradient(ellipse at 20% 16%, rgba(255,255,255,0.92), transparent 34%),
+      radial-gradient(ellipse at 80% 84%, rgba(255,255,255,0.52), transparent 38%);
+    filter:blur(4px);
+    opacity:0.9;
+  }
+
+  body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    background-image:
+      repeating-radial-gradient(circle at 28% 46%, transparent 0 20px, rgba(255,255,255,0.54) 21px, transparent 23px),
+      repeating-radial-gradient(circle at 74% 64%, transparent 0 26px, rgba(138,220,255,0.20) 27px, transparent 30px),
+      linear-gradient(115deg, transparent 0 22%, rgba(255,255,255,0.56) 32%, transparent 43% 100%);
+    mix-blend-mode:screen;
+    opacity:0.66;
+    animation: water-caustics 14s ease-in-out infinite alternate;
+  }
+
+  @keyframes water-caustics{
+    0%{ transform:translate3d(-12px,-8px,0) scale(1.02); opacity:0.50; }
+    100%{ transform:translate3d(14px,10px,0) scale(1.08); opacity:0.76; }
+  }
+
+  #bgLayer{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    overflow:hidden;
+    transition:transform 1.2s ease-out;
+  }
+
+  .glass-clover{
+    position:absolute;
+    width:120px;
+    aspect-ratio:1;
+    opacity:0.72;
+    filter: drop-shadow(0 24px 26px rgba(27,96,76,0.15));
+    animation: glass-clover-float 12s ease-in-out infinite;
+  }
+
+  .glass-clover svg{
+    width:100%;
+    height:100%;
+    overflow:visible;
+  }
+
+  .glass-clover .clover-shape{
+    transform-origin:60px 60px;
+    filter:url(#cloverBlur);
+  }
+  .glass-clover .leaf,
+  .glass-clover .edge{
+    transform-box:fill-box;
+    transform-origin:60px 60px;
+  }
+  .glass-clover .leaf{
+    fill:url(#cloverGlassGradient);
+    stroke:rgba(255,255,255,0.86);
+    stroke-width:1.35;
+  }
+  .glass-clover .edge{
+    fill:none;
+    stroke:rgba(0,112,66,0.42);
+    stroke-width:1.25;
+  }
+  .glass-clover .leaf-top{ transform:translate(0px, -19px) scale(0.62); }
+  .glass-clover .leaf-right{ transform:translate(19px, 0px) rotate(90deg) scale(0.62); }
+  .glass-clover .leaf-bottom{ transform:translate(0px, 19px) rotate(180deg) scale(0.62); }
+  .glass-clover .leaf-left{ transform:translate(-19px, 0px) rotate(-90deg) scale(0.62); }
+  .glass-clover .vein,
+  .glass-clover .stem{
+    fill:none;
+    stroke:rgba(255,255,255,0.76);
+    stroke-width:1.65;
+    stroke-linecap:round;
+    opacity:0.72;
+  }
+  .glass-clover .stem{
+    stroke:rgba(0,126,76,0.56);
+    stroke-width:2.4;
+    filter:url(#sparkGlow);
+  }
+
+  .glass-clover .glint{
+    fill:white;
+    opacity:0.95;
+    filter:url(#sparkGlow);
+    animation: glint-twinkle 2.8s ease-in-out infinite;
+  }
+
+  .glass-clover::before{
+    content:"";
+    position:absolute;
+    inset:-18%;
+    border-radius:50%;
+    background:
+      radial-gradient(circle at 30% 24%, rgba(255,255,255,0.88), transparent 18%),
+      linear-gradient(115deg, transparent 22%, rgba(255,255,255,0.75) 42%, transparent 58%);
+    opacity:0.62;
+    mix-blend-mode:screen;
+    transform:rotate(-10deg);
+  }
+
+  .glass-clover::after{
+    content:"";
+    position:absolute;
+    left:18%;
+    bottom:-22%;
+    width:70%;
+    height:24%;
+    border-radius:50%;
+    background:rgba(42,106,119,0.14);
+    filter:blur(10px);
+    transform:rotate(-7deg);
+  }
+
+  .clover-main{ width:170px; right:-26px; bottom:10%; opacity:0.82; transform:rotate(-14deg); animation-duration:14s; }
+  .clover-a{ width:112px; left:-22px; top:14%; transform:rotate(18deg); animation-duration:11s; opacity:0.56; }
+  .clover-b{ width:86px; right:12%; top:9%; transform:rotate(-22deg); animation-duration:16s; opacity:0.48; }
+  .clover-c{ width:96px; left:12%; bottom:13%; transform:rotate(12deg); animation-duration:13s; opacity:0.44; }
+  .clover-d{ width:64px; left:48%; top:43%; transform:rotate(-8deg); animation-duration:10s; opacity:0.30; }
+
+  @keyframes glass-clover-float{
+    0%,100%{ translate:0 0; }
+    50%{ translate:0 -18px; }
+  }
+
+  @keyframes glint-twinkle{
+    0%,100%{ opacity:0.25; transform:scale(0.82); }
+    50%{ opacity:1; transform:scale(1.22); }
+  }
+
+  .water-ring{
+    position:absolute;
+    width:230px;
+    height:230px;
+    border-radius:50%;
+    border:1px solid rgba(255,255,255,0.76);
+    box-shadow:
+      0 0 0 8px rgba(255,255,255,0.12),
+      inset 0 0 28px rgba(138,216,255,0.22),
+      0 0 28px rgba(255,255,255,0.42);
+    opacity:0.52;
+    animation: ripple-soft 9s ease-out infinite;
+  }
+  .ring-1{ left:-44px; bottom:11%; animation-delay:0s; }
+  .ring-2{ right:-66px; top:18%; width:280px; height:280px; animation-delay:2.2s; }
+  .ring-3{ left:38%; top:31%; width:160px; height:160px; animation-delay:4.5s; opacity:0.32; }
+
+  @keyframes ripple-soft{
+    0%{ transform:scale(0.70); opacity:0; }
+    22%{ opacity:0.58; }
+    100%{ transform:scale(1.55); opacity:0; }
+  }
+
+  .prism-flare{
+    position:absolute;
+    width:170px;
+    height:22px;
+    border-radius:999px;
+    background:linear-gradient(90deg, transparent, rgba(255,91,218,0.42), rgba(72,227,255,0.48), rgba(255,240,89,0.38), transparent);
+    filter:blur(7px);
+    opacity:0.48;
+    transform:rotate(-18deg);
+    animation: prism-drift 8s ease-in-out infinite alternate;
+  }
+  .flare-1{ left:5%; top:27%; }
+  .flare-2{ right:8%; bottom:24%; animation-delay:2s; }
+
+  @keyframes prism-drift{
+    from{ transform:translateX(-12px) rotate(-18deg); opacity:0.26; }
+    to{ transform:translateX(18px) rotate(-18deg); opacity:0.62; }
+  }
+
+  .bg-sparkle{
+    position:absolute;
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:#fff;
+    box-shadow:0 0 10px 4px rgba(255,255,255,0.95), 0 0 22px rgba(120,226,255,0.60);
+    animation: sparkle-float 8s ease-in-out infinite;
+  }
+  .bg-sparkle::before,
+  .bg-sparkle::after{
+    content:"";
+    position:absolute;
+    left:50%; top:50%;
+    width:22px; height:1px;
+    background:rgba(255,255,255,0.86);
+    transform:translate(-50%,-50%);
+  }
+  .bg-sparkle::after{ transform:translate(-50%,-50%) rotate(90deg); }
+  .sparkle1{ top:15%; left:18%; animation-delay:0s; }
+  .sparkle2{ top:70%; left:78%; animation-delay:1.7s; }
+  .sparkle3{ top:82%; left:31%; animation-delay:3.1s; }
+  .sparkle4{ top:36%; left:70%; animation-delay:4.2s; }
+  .sparkle5{ top:58%; left:13%; animation-delay:2.4s; }
+  .sparkle6{ top:12%; left:86%; animation-delay:5s; }
+
+  @keyframes sparkle-float{
+    0%,100%{ transform:translate(0,0) scale(0.75); opacity:0.35; }
+    50%{ transform:translate(18px,-24px) scale(1.18); opacity:1; }
+  }
+
+  /* ============================================
+     2. total 화면 진입 애니메이션 (Fade + Float + Stagger)
+     ============================================ */
+  #app-container{
+    position:relative; z-index:1;
+    width:100%; max-width:460px;
+    display:flex; flex-direction:column; align-items:center; gap:20px;
+  }
+
+  /* 진입시 순차적으로 나타나는 요소들에 ball통 적용되는 애니메이션 */
+  .intro{
+    opacity:0;
+    transform:translateY(22px);
+    animation: fade-float 0.9s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  @keyframes fade-float{
+    to{ opacity:1; transform:translateY(0); }
+  }
+  /* stagger: 요소마다 시작 시간을 0.07초씩 늦춤 */
+  .intro:nth-child(1){ animation-delay:0.05s; }
+  .intro:nth-child(2){ animation-delay:0.12s; }
+  .intro:nth-child(3){ animation-delay:0.20s; }
+  .intro:nth-child(4){ animation-delay:0.28s; }
+
+  /* ============================================
+     3. 상단 타이틀 영역
+     ============================================ */
+  #title-area{ text-align:center; }
+  #title-area h1{
+    margin:0 0 6px;
+    font-size:26px; font-weight:800; letter-spacing:-0.5px;
+    background:linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  #title-area p{
+    margin:0; font-size:13.5px; color:var(--text-sub); font-weight:500;
+  }
+
+  /* ============================================
+     4. 유리(Glass) 카드 ball통 스타일
+     ============================================ */
+  .glass-card{
+    width:100%;
+    background:var(--glass-fill);
+    backdrop-filter: blur(26px) saturate(190%);
+    -webkit-backdrop-filter: blur(26px) saturate(190%);
+    border:1px solid var(--glass-border);
+    border-radius:28px;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255,255,255,0.6);
+    padding:26px 20px;
+    position:relative;
+    overflow:hidden;
+    transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s ease;
+  }
+  /* 카드에 마우스를 올렸을 때 살짝 떠오르는 Elevation 효과 */
+  .glass-card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(31,58,89,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  /* 카드 테두리를 한 번 스치는 하이라이트 스윕 */
+  .glass-card::before{
+    content:"";
+    position:absolute; top:0; left:-60%;
+    width:40%; height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform:skewX(-20deg);
+    animation: highlight-sweep 6s ease-in-out infinite;
+  }
+  @keyframes highlight-sweep{
+    0%{ left:-60%; }
+    35%{ left:120%; }
+    100%{ left:120%; }
+  }
+
+  /* ============================================
+     5. 로또 ball(볼) 표시 영역
+     ============================================ */
+  #ball-list{
+    display:flex; flex-wrap:wrap; justify-content:center;
+    gap:12px; margin-bottom:10px; position:relative; z-index:1;
+  }
+
+  .lotto-ball{
+    width:52px; height:52px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:800; color:#ffffff;
+    position:relative;
+    /* 크리스탈 글래스 느낌: 반투명 컬러 + 하이라이트 + 테두리 */
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95), rgba(255,255,255,0) 40%),
+                var(--ball-color, #cccccc);
+    box-shadow:
+      inset 0 -6px 10px rgba(0,0,0,0.18),
+      inset 0 4px 6px rgba(255,255,255,0.55),
+      0 6px 14px rgba(31,58,89,0.20);
+    border:1px solid rgba(255,255,255,0.6);
+    /* 추첨 전 : 아주 천천히 떠다니는 기본 상태 */
+    animation: ball-float 4.2s ease-in-out infinite;
+    opacity:0.55; /* 아직 뽑히지 않은 상태는 흐리게 표시 */
+    transform:scale(0.9);
+    transition: opacity .3s ease;
+  }
+  .lotto-ball span{ position:relative; z-index:2; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+
+  @keyframes ball-float{
+    0%,100%{ transform: translateY(0) scale(0.9); }
+    50%{ transform: translateY(-6px) scale(0.9); }
+  }
+
+  /* 회전(롤링) 중인 ball - 추첨 버튼을 누르면 부여되는 클래스 */
+  .lotto-ball.rolling{
+    animation: ball-spin 0.55s linear infinite;
+    opacity:0.8;
+  }
+  @keyframes ball-spin{
+    0%{ transform:rotate(0deg) scale(0.95); }
+    50%{ transform:rotate(180deg) scale(1.05); }
+    100%{ transform:rotate(360deg) scale(0.95); }
+  }
+
+  /* 번호가 확정되어 intro하는 애니메이션
+     Blur→Focus / Scale 0.8→1.0 / Opacity 0→100% 를 한 번에 표현 */
+  .lotto-ball.reveal{
+    animation: num-intro 0.6s cubic-bezier(.2,1.4,.4,1) forwards;
+  }
+  @keyframes num-intro{
+    0%{ filter:blur(6px); transform:scale(0.8); opacity:0; }
+    60%{ filter:blur(0px); transform:scale(1.12); opacity:1; }
+    100%{ filter:blur(0px); transform:scale(1); opacity:1; }
+  }
+
+  /* bonus number는 조금 더 크고 강조된 효과 */
+  .lotto-ball.bonus{ width:60px; height:60px; font-size:21px; }
+  .lotto-ball.bonus.reveal{ animation: bonus-intro 0.75s cubic-bezier(.2,1.4,.4,1) forwards; }
+  @keyframes bonus-intro{
+    0%{ filter:blur(8px); transform:scale(0.7); opacity:0; }
+    55%{ filter:blur(0px); transform:scale(1.22); opacity:1; }
+    100%{ filter:blur(0px); transform:scale(1); opacity:1; }
+  }
+
+  /* ball 위를 스쳐 지나가는 Glass Shine 효과 */
+  .lotto-ball::after{
+    content:"";
+    position:absolute; inset:0; border-radius:50%;
+    background:linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.85) 50%, transparent 60%);
+    background-size:250% 250%;
+    background-position:-100% -100%;
+    opacity:0;
+  }
+  .lotto-ball.shine::after{
+    animation: shine-move 0.9s ease-out;
+  }
+  @keyframes shine-move{
+    0%{ background-position:-100% -100%; opacity:1; }
+    100%{ background-position:100% 100%; opacity:0; }
+  }
+
+  /* number intro시 glint이는 작은 sparkle */
+  .sparkle{
+    position:absolute; width:6px; height:6px; border-radius:50%;
+    background:#fff; pointer-events:none;
+    box-shadow:0 0 6px 2px rgba(255,255,255,0.9);
+    animation: sparkleglint 0.8s ease-out forwards;
+  }
+  @keyframes sparkleglint{
+    0%{ transform:scale(0) translate(0,0); opacity:1; }
+    100%{ transform:scale(1) translate(var(--sx), var(--sy)); opacity:0; }
+  }
+
+  #bonus-label{
+    text-align:center; font-size:12px; color:var(--text-sub); font-weight:600;
+    margin-top:2px; letter-spacing:0.3px;
+  }
+
+  /* ============================================
+     6. legend (number 범위별 색상 안내)
+     ============================================ */
+  #legend{
+    display:flex; flex-wrap:wrap; justify-content:center; gap:8px 14px;
+    margin-top:14px; position:relative; z-index:1;
+  }
+  .legend-item{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-sub); font-weight:600; }
+  .legend-dot{ width:9px; height:9px; border-radius:50%; }
+
+  /* ============================================
+     7. 추첨 버튼 (Apple Liquid Glass Pill Button)
+     ============================================ */
+  #drawBtn{
+    position:relative;
+    width:100%;
+    padding:17px 0;
+    border:none; border-radius:100px;
+    cursor:pointer;
+    font-family:inherit; font-size:16px; font-weight:700; color:#ffffff;
+    letter-spacing:0.2px;
+    background:linear-gradient(120deg, var(--accent-blue), var(--accent-purple) 55%, var(--accent-green));
+    background-size:180% 180%;
+    box-shadow:
+      0 10px 24px rgba(91,141,239,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.55),
+      inset 0 -3px 6px rgba(0,0,0,0.12);
+    overflow:hidden;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease, background-position .6s ease;
+  }
+  #drawBtn:hover{
+    transform:scale(1.04);
+    background-position:100% 50%;
+    box-shadow:
+      0 14px 30px rgba(91,141,239,0.42),
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -3px 6px rgba(0,0,0,0.12);
+  }
+  /* 클릭 시 살짝 눌렸다가 스프링처럼 복원 */
+  #drawBtn:active{ transform:scale(0.96); }
+  #drawBtn.pressed{ animation: button-spring 0.42s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes button-spring{
+    0%{ transform:scale(0.94); }
+    55%{ transform:scale(1.05); }
+    100%{ transform:scale(1); }
+  }
+  /* 버튼 위를 지나가는 유리 반사(Glass Reflection) */
+  #drawBtn::before{
+    content:"";
+    position:absolute; top:0; left:-70%;
+    width:35%; height:100%;
+    background:linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform:skewX(-18deg);
+    transition:left .6s ease;
+  }
+  #drawBtn:hover::before{ left:130%; }
+
+  /* 클릭 순간 내부에서 빛이 퍼지는 Glow Pulse */
+  .glow-pulse{
+    position:absolute; inset:0; border-radius:100px;
+    background:radial-gradient(circle, rgba(255,255,255,0.9), transparent 60%);
+    opacity:0; pointer-events:none;
+    animation: glow-pulse 0.6s ease-out;
+  }
+  @keyframes glow-pulse{
+    0%{ opacity:0.9; transform:scale(0.3); }
+    100%{ opacity:0; transform:scale(1.6); }
+  }
+
+  /* 버튼 클릭 시 주변으로 퍼지는 Glass Ripple */
+  .button-ripple{
+    position:absolute; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.7);
+    top:50%; left:50%;
+    width:20px; height:20px;
+    transform:translate(-50%,-50%) scale(0.5);
+    opacity:0.8; pointer-events:none;
+    animation: button-ripple-diffusion 0.7s ease-out forwards;
+  }
+  @keyframes button-ripple-diffusion{
+    to{ transform:translate(-50%,-50%) scale(9); opacity:0; }
+  }
+
+  /* ============================================
+     8. result(trophy) 카드 - 모든 번호가 intro한 뒤 노출
+     ============================================ */
+  #resultCard{
+    width:100%;
+    text-align:center;
+    padding:22px 18px;
+    border-radius:26px;
+    background:var(--glass-fill-strong);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    border:1px solid var(--glass-border);
+    box-shadow: 0 0 0 rgba(120,180,255,0);
+    position:relative;
+    display:none; /* 처음엔 숨김, 추첨 완료 후 표시 */
+  }
+  #resultCard.show{
+    display:block;
+    animation: result-intro 0.7s cubic-bezier(.22,1,.36,1) forwards;
+  }
+  @keyframes result-intro{
+    0%{ opacity:0; transform:scale(0.86); filter:blur(6px); }
+    100%{ opacity:1; transform:scale(1); filter:blur(0px);
+      box-shadow: 0 0 46px rgba(120,180,255,0.35), var(--glass-shadow); }
+  }
+  #resultCard .trophy{
+    font-size:30px; margin-bottom:6px;
+    filter:drop-shadow(0 4px 10px rgba(255,200,80,0.5));
+  }
+  #resultCard h2{ margin:0 0 4px; font-size:16px; font-weight:800; }
+  #resultCard p{ margin:0; font-size:12.5px; color:var(--text-sub); font-weight:500; }
+
+  /* result 카드 intro시 함께 퍼지는 Glass Burst / Sparkle */
+  .burst-fragment{
+    position:absolute; top:50%; left:50%;
+    width:5px; height:5px; border-radius:50%;
+    background:radial-gradient(circle, #fff, rgba(255,255,255,0));
+    opacity:0; pointer-events:none;
+  }
+  .burst-play .burst-fragment{
+    animation: burst-diffusion 0.9s ease-out forwards;
+  }
+  @keyframes burst-diffusion{
+    0%{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+    100%{ opacity:0; transform:translate(calc(-50% + var(--bx)), calc(-50% + var(--by))) scale(0); }
+  }
+
+
+
+  /* ============================================
+     9. 추첨 기록 저장 영역
+     ============================================ */
+  #historyCard{
+    width:100%;
+    padding:18px 16px;
+    border-radius:24px;
+    background:rgba(255,255,255,0.42);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border:1px solid rgba(255,255,255,0.84);
+    box-shadow:0 12px 30px rgba(31,58,89,0.10), inset 0 1px 0 rgba(255,255,255,0.68);
+    position:relative;
+    overflow:hidden;
+  }
+  #historyCard::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(135deg, rgba(255,255,255,0.55), transparent 46%, rgba(126,230,255,0.16));
+    pointer-events:none;
+  }
+  .history-header{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .history-header h3{ margin:0; font-size:14px; font-weight:800; letter-spacing:-0.2px; }
+  .history-header span{ font-size:11px; color:var(--text-sub); font-weight:700; }
+  #historyList{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .history-empty{
+    position:relative;
+    font-size:12px;
+    color:var(--text-sub);
+    text-align:center;
+    padding:8px 0 2px;
+    font-weight:600;
+  }
+  .history-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 11px;
+    border-radius:18px;
+    background:rgba(255,255,255,0.44);
+    border:1px solid rgba(255,255,255,0.68);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  .history-date{
+    min-width:64px;
+    font-size:10.5px;
+    color:var(--text-sub);
+    font-weight:700;
+    line-height:1.25;
+  }
+  .history-numbers{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+    gap:4px;
+  }
+  .history-mini-ball{
+    width:25px;
+    height:25px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    font-size:10.5px;
+    font-weight:800;
+    border:1px solid rgba(255,255,255,0.68);
+    box-shadow:inset 0 2px 4px rgba(255,255,255,0.52), inset 0 -3px 6px rgba(0,0,0,0.14);
+  }
+  .history-plus{ font-size:11px; color:var(--text-sub); font-weight:900; align-self:center; }
+
+
+
+  /* ============================================
+     10. 모바일 최적화 + 재추첨 버튼 + 추가 클로버/반짝임
+     ============================================ */
+  .retry-button{
+    margin-top:14px;
+    width:100%;
+    max-width:260px;
+    padding:13px 18px;
+    border:1px solid rgba(255,255,255,0.82);
+    border-radius:999px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:14px;
+    font-weight:800;
+    color:#1f6f55;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.78), rgba(214,255,240,0.44)),
+      rgba(255,255,255,0.42);
+    backdrop-filter:blur(18px) saturate(180%);
+    -webkit-backdrop-filter:blur(18px) saturate(180%);
+    box-shadow:0 10px 22px rgba(43,124,105,0.14), inset 0 1px 0 rgba(255,255,255,0.85);
+    transition:transform .24s cubic-bezier(.34,1.56,.64,1), box-shadow .24s ease;
+  }
+  .retry-button:hover{ transform:translateY(-2px) scale(1.03); box-shadow:0 14px 28px rgba(43,124,105,0.18), inset 0 1px 0 rgba(255,255,255,0.92); }
+  .retry-button:active{ transform:scale(0.96); }
+
+  .clover-e{ width:78px; right:34%; bottom:4%; transform:rotate(31deg); animation-duration:12s; opacity:0.36; }
+  .clover-f{ width:58px; left:28%; top:4%; transform:rotate(-34deg); animation-duration:15s; opacity:0.30; }
+  .clover-g{ width:72px; right:2%; top:43%; transform:rotate(16deg); animation-duration:10s; opacity:0.34; }
+  .clover-h{ width:54px; left:5%; top:54%; transform:rotate(-18deg); animation-duration:17s; opacity:0.28; }
+
+  .sparkle7{ top:24%; left:42%; animation-delay:0.8s; }
+  .sparkle8{ top:46%; left:88%; animation-delay:1.2s; }
+  .sparkle9{ top:63%; left:45%; animation-delay:2.8s; }
+  .sparkle10{ top:91%; left:68%; animation-delay:3.7s; }
+  .sparkle11{ top:7%; left:55%; animation-delay:4.8s; }
+  .sparkle12{ top:76%; left:8%; animation-delay:5.6s; }
+
+  @media (max-width:640px){
+    html,body{ min-height:100%; height:auto; }
+    body{
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding:22px 14px 32px;
+      overflow-y:auto;
+      background:
+        radial-gradient(circle at 20% 5%, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.72) 24%, transparent 52%),
+        radial-gradient(circle at 78% 16%, rgba(156,226,255,0.58) 0%, transparent 46%),
+        radial-gradient(circle at 24% 88%, rgba(184,250,206,0.56) 0%, transparent 48%),
+        linear-gradient(145deg, #fafdff 0%, #edf9ff 42%, #f5fff8 72%, #dff5ff 100%);
+    }
+    #app-container{
+      width:100%;
+      max-width:420px;
+      margin:0 auto;
+      gap:14px;
+    }
+    #title-area{ padding-top:6px; }
+    #title-area h1{ font-size:clamp(21px, 6vw, 26px); line-height:1.15; }
+    #title-area p{ font-size:12.5px; }
+    .glass-card{ padding:20px 14px; border-radius:24px; }
+    #ball-list{ gap:9px; }
+    .lotto-ball{ width:clamp(42px, 12vw, 50px); height:clamp(42px, 12vw, 50px); font-size:16px; }
+    .lotto-ball.bonus{ width:clamp(48px, 13vw, 56px); height:clamp(48px, 13vw, 56px); font-size:18px; }
+    #drawBtn{ padding:15px 0; font-size:15px; }
+    #resultCard{ padding:18px 14px; border-radius:22px; }
+    #historyCard{ padding:16px 13px; border-radius:22px; }
+    .history-item{ align-items:flex-start; flex-direction:column; gap:8px; }
+    .history-date{ min-width:auto; }
+    .history-numbers{ justify-content:flex-start; }
+    .history-mini-ball{ width:23px; height:23px; font-size:10px; }
+    .clover-main{ width:136px; right:-48px; bottom:9%; opacity:0.62; }
+    .clover-a{ width:86px; left:-36px; top:10%; opacity:0.44; }
+    .clover-b{ width:72px; right:5%; top:5%; opacity:0.38; }
+    .clover-c{ width:76px; left:4%; bottom:7%; opacity:0.34; }
+    .clover-d{ width:52px; left:55%; top:35%; opacity:0.24; }
+    .clover-e{ width:62px; right:28%; bottom:1%; opacity:0.28; }
+    .clover-f{ width:48px; left:36%; top:2%; opacity:0.22; }
+    .clover-g{ width:58px; right:-18px; top:52%; opacity:0.26; }
+    .clover-h{ width:46px; left:-8px; top:60%; opacity:0.22; }
+    .water-ring{ transform:scale(.78); }
+  }
+
+  @media (max-width:360px){
+    body{ padding-left:10px; padding-right:10px; }
+    #legend{ gap:7px 9px; }
+    .legend-item{ font-size:10px; }
+    .history-header h3{ font-size:13px; }
+  }
+
+  /* 모바일 화면 대응 */
+  @media (max-width:420px){
+    .lotto-ball{ width:46px; height:46px; font-size:17px; }
+    .lotto-ball.bonus{ width:52px; height:52px; font-size:18px; }
+    #title-area h1{ font-size:22px; }
+    .history-item{ align-items:flex-start; flex-direction:column; }
+    .history-date{ min-width:auto; }
+    .history-numbers{ justify-content:flex-start; }
+  }
+
+
+  /* ============================================
+     11. 모바일 터치/비율 최종 보정
+     - 기존 작은 모바일 값보다 아래 규칙이 더 우선 적용됨
+     ============================================ */
+  #resultCard > *{
+    position:relative;
+    z-index:2;
+  }
+  #retryBtn{
+    position:relative;
+    z-index:5;
+    pointer-events:auto;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  @media (max-width:640px){
+    html{
+      height:auto;
+      min-height:100%;
+      -webkit-text-size-adjust:100%;
+    }
+    body{
+      min-height:100svh;
+      height:auto;
+      align-items:flex-start;
+      justify-content:center;
+      padding:18px 12px 32px;
+      overflow-y:auto;
+    }
+    #app-container{
+      width:100%;
+      max-width:100%;
+      gap:16px;
+    }
+    #title-area{
+      width:100%;
+      padding-top:8px;
+    }
+    #title-area h1{
+      font-size:clamp(25px, 7.2vw, 31px);
+      line-height:1.16;
+      letter-spacing:-0.8px;
+    }
+    #title-area p{
+      font-size:clamp(14px, 3.8vw, 16px);
+      line-height:1.45;
+    }
+    .glass-card,
+    #resultCard,
+    #historyCard{
+      width:100%;
+      border-radius:28px;
+    }
+    .glass-card{
+      padding:24px 16px 22px;
+    }
+    #ball-list{
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .lotto-ball{
+      width:clamp(52px, 14.2vw, 62px) !important;
+      height:clamp(52px, 14.2vw, 62px) !important;
+      font-size:clamp(18px, 5vw, 22px) !important;
+    }
+    .lotto-ball.bonus{
+      width:clamp(58px, 15.6vw, 68px) !important;
+      height:clamp(58px, 15.6vw, 68px) !important;
+      font-size:clamp(20px, 5.4vw, 24px) !important;
+    }
+    #bonus-label{
+      font-size:13px;
+      margin-top:4px;
+    }
+    #legend{
+      gap:10px 13px;
+      margin-top:16px;
+    }
+    .legend-item{
+      font-size:12px;
+    }
+    .legend-dot{
+      width:10px;
+      height:10px;
+    }
+    #drawBtn{
+      min-height:58px;
+      padding:20px 0;
+      font-size:18px;
+      border-radius:999px;
+      touch-action:manipulation;
+    }
+    #resultCard{
+      padding:24px 16px;
+    }
+    #resultCard .trophy{
+      font-size:36px;
+    }
+    #resultCard h2{
+      font-size:18px;
+    }
+    #resultCard p{
+      font-size:14px;
+    }
+    .retry-button{
+      width:100%;
+      max-width:none;
+      min-height:56px;
+      margin-top:18px;
+      padding:18px 20px;
+      font-size:17px;
+    }
+    #historyCard{
+      padding:18px 14px;
+    }
+    .history-header h3{
+      font-size:16px;
+    }
+    .history-header span{
+      font-size:12px;
+    }
+    .history-item{
+      padding:13px;
+      gap:10px;
+      border-radius:20px;
+    }
+    .history-date{
+      font-size:12px;
+    }
+    .history-numbers{
+      gap:6px;
+    }
+    .history-mini-ball{
+      width:30px;
+      height:30px;
+      font-size:12px;
+    }
+    .history-plus{
+      font-size:14px;
+    }
+  }
+
+  @media (max-width:380px){
+    body{
+      padding-left:10px;
+      padding-right:10px;
+    }
+    .glass-card{
+      padding-left:12px;
+      padding-right:12px;
+    }
+    #ball-list{
+      gap:8px;
+    }
+    .lotto-ball{
+      width:clamp(48px, 14vw, 54px) !important;
+      height:clamp(48px, 14vw, 54px) !important;
+      font-size:18px !important;
+    }
+    .lotto-ball.bonus{
+      width:clamp(54px, 15vw, 60px) !important;
+      height:clamp(54px, 15vw, 60px) !important;
+      font-size:20px !important;
+    }
+    #title-area h1{
+      font-size:24px !important;
+    }
+    .retry-button,
+    #drawBtn{
+      min-height:56px;
+      font-size:16px;
+    }
+  }
+
+
+
+  /* ============================================
+     12. 최종 수정: 모바일 확대형 반응형 + 재추첨 버튼 터치 안정화
+     ============================================ */
+  #app-container,
+  #resultCard,
+  #historyCard,
+  .glass-card,
+  #drawBtn,
+  #retryBtn{
+    touch-action:manipulation;
+  }
+
+  #retryBtn{
+    position:relative !important;
+    z-index:999 !important;
+    pointer-events:auto !important;
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-tap-highlight-color:rgba(0,0,0,0);
+  }
+
+  #resultCard{
+    isolation:isolate;
+  }
+
+  #resultCard.show{
+    pointer-events:auto;
+  }
+
+  #resultCard .burst-fragment,
+  #resultCard::before,
+  #resultCard::after{
+    pointer-events:none !important;
+  }
+
+  @media (hover:none){
+    .glass-card:hover,
+    #drawBtn:hover,
+    .retry-button:hover{
+      transform:none;
+    }
+  }
+
+  @media (max-width:768px){
+    html{
+      width:100%;
+      min-height:100%;
+      height:auto;
+      -webkit-text-size-adjust:100%;
+    }
+
+    body{
+      width:100%;
+      min-height:100svh;
+      height:auto;
+      display:block;
+      padding:20px max(12px, env(safe-area-inset-left)) 36px max(12px, env(safe-area-inset-right));
+      overflow-x:hidden;
+      overflow-y:auto;
+    }
+
+    #app-container{
+      width:min(100%, 560px);
+      max-width:none;
+      margin:0 auto;
+      gap:18px;
+    }
+
+    #title-area{
+      width:100%;
+      padding-top:8px;
+    }
+
+    #title-area h1{
+      font-size:clamp(28px, 8.2vw, 38px) !important;
+      line-height:1.12;
+      letter-spacing:-1px;
+      margin-bottom:8px;
+    }
+
+    #title-area p{
+      font-size:clamp(15px, 4.2vw, 18px) !important;
+      line-height:1.45;
+    }
+
+    .glass-card,
+    #resultCard,
+    #historyCard{
+      width:100%;
+      border-radius:32px;
+      box-shadow:0 18px 46px rgba(31,58,89,0.14), inset 0 1px 0 rgba(255,255,255,0.72);
+    }
+
+    .glass-card{
+      padding:28px 16px 24px;
+    }
+
+    #ball-list{
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .lotto-ball{
+      width:clamp(58px, 16vw, 72px) !important;
+      height:clamp(58px, 16vw, 72px) !important;
+      font-size:clamp(21px, 5.8vw, 27px) !important;
+      opacity:0.7;
+    }
+
+    .lotto-ball.bonus{
+      width:clamp(66px, 18vw, 80px) !important;
+      height:clamp(66px, 18vw, 80px) !important;
+      font-size:clamp(23px, 6.2vw, 30px) !important;
+    }
+
+    #bonus-label{
+      font-size:14px;
+      margin-top:6px;
+    }
+
+    #legend{
+      gap:11px 15px;
+      margin-top:18px;
+    }
+
+    .legend-item{
+      font-size:13px;
+    }
+
+    .legend-dot{
+      width:11px;
+      height:11px;
+    }
+
+    #drawBtn{
+      min-height:68px;
+      padding:22px 0;
+      font-size:clamp(19px, 5vw, 22px);
+      border-radius:999px;
+    }
+
+    #resultCard{
+      padding:28px 18px;
+    }
+
+    #resultCard .trophy{
+      font-size:42px;
+    }
+
+    #resultCard h2{
+      font-size:clamp(20px, 5.2vw, 24px);
+      line-height:1.28;
+    }
+
+    #resultCard p{
+      font-size:clamp(15px, 4vw, 17px);
+    }
+
+    .retry-button{
+      width:100%;
+      max-width:none;
+      min-height:66px;
+      margin-top:22px;
+      padding:20px 22px;
+      font-size:clamp(19px, 5vw, 22px);
+      border-radius:999px;
+    }
+
+    #historyCard{
+      padding:22px 16px;
+    }
+
+    .history-header h3{
+      font-size:18px;
+    }
+
+    .history-header span{
+      font-size:13px;
+    }
+
+    .history-item{
+      padding:15px;
+      border-radius:22px;
+      gap:12px;
+    }
+
+    .history-date{
+      font-size:13px;
+    }
+
+    .history-numbers{
+      gap:7px;
+    }
+
+    .history-mini-ball{
+      width:34px;
+      height:34px;
+      font-size:13px;
+    }
+
+    .history-plus{
+      font-size:15px;
+    }
+  }
+
+  @media (max-width:420px){
+    body{
+      padding-left:10px;
+      padding-right:10px;
+    }
+
+    #app-container{
+      gap:16px;
+    }
+
+    .glass-card{
+      padding-left:12px;
+      padding-right:12px;
+    }
+
+    #ball-list{
+      gap:9px;
+    }
+
+    .lotto-ball{
+      width:clamp(54px, 15.4vw, 62px) !important;
+      height:clamp(54px, 15.4vw, 62px) !important;
+      font-size:clamp(19px, 5.4vw, 23px) !important;
+    }
+
+    .lotto-ball.bonus{
+      width:clamp(62px, 17vw, 70px) !important;
+      height:clamp(62px, 17vw, 70px) !important;
+      font-size:clamp(22px, 6vw, 26px) !important;
+    }
+
+    #drawBtn,
+    .retry-button{
+      min-height:64px;
+      font-size:19px;
+    }
+  }
+
+  @media (max-width:360px){
+    #ball-list{
+      gap:8px;
+    }
+
+    .lotto-ball{
+      width:50px !important;
+      height:50px !important;
+      font-size:18px !important;
+    }
+
+    .lotto-ball.bonus{
+      width:58px !important;
+      height:58px !important;
+      font-size:20px !important;
+    }
+
+    #title-area h1{
+      font-size:27px !important;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- ============================================
+       배경 레이어: 네잎클로버 SVG + 빛 sparkle + wave
+       ============================================ -->
+  <div id="bgLayer">
+    <svg width="0" height="0" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="cloverGlassGradient" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.92"/>
+          <stop offset="30%" stop-color="#cffff0" stop-opacity="0.70"/>
+          <stop offset="62%" stop-color="#43cf7b" stop-opacity="0.42"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0.74"/>
+        </linearGradient>
+        <filter id="cloverBlur" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#056747" flood-opacity="0.22"/>
+        </filter>
+        <filter id="sparkGlow" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+    </svg>
+
+    <div class="water-ring ring-1"></div>
+    <div class="water-ring ring-2"></div>
+    <div class="water-ring ring-3"></div>
+    <div class="prism-flare flare-1"></div>
+    <div class="prism-flare flare-2"></div>
+
+    <div class="glass-clover clover-main"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-a"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-b"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-c"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-d"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+
+    <div class="glass-clover clover-e"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-f"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-g"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+    <div class="glass-clover clover-h"><svg viewBox="0 0 120 120">
+        <g class="clover-shape">
+          <path class="leaf leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="leaf leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-top" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-right" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-bottom" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="edge leaf-left" d="M60 17 C49 2 25 9 25 30 C25 49 46 58 60 66 C74 58 95 49 95 30 C95 9 71 2 60 17Z"/>
+          <path class="vein" d="M60 60 L60 26 M60 60 L94 60 M60 60 L60 94 M60 60 L26 60"/>
+          <path class="stem" d="M63 66 C74 81 88 94 105 106"/>
+          <circle class="glint" cx="48" cy="24" r="3"/>
+          <circle class="glint" cx="91" cy="52" r="2.5"/>
+          <circle class="glint" cx="54" cy="91" r="2.8"/>
+        </g>
+      </svg></div>
+
+    <div class="bg-sparkle sparkle1"></div>
+    <div class="bg-sparkle sparkle2"></div>
+    <div class="bg-sparkle sparkle3"></div>
+    <div class="bg-sparkle sparkle4"></div>
+    <div class="bg-sparkle sparkle5"></div>
+    <div class="bg-sparkle sparkle6"></div>
+    <div class="bg-sparkle sparkle7"></div>
+    <div class="bg-sparkle sparkle8"></div>
+    <div class="bg-sparkle sparkle9"></div>
+    <div class="bg-sparkle sparkle10"></div>
+    <div class="bg-sparkle sparkle11"></div>
+    <div class="bg-sparkle sparkle12"></div>
+  </div>
+
+  <!-- ============================================
+       메인 앱 영역
+       ============================================ -->
+  <div id="app-container">
+
+    <!-- 타이틀 -->
+    <div id="title-area" class="intro">
+      <!-- clover-float -->
+      <h1>🍀 럭키비키 로또번호추첨기</h1>
+      <p>버튼을 눌러 행운의 번호 6개를 뽑아보세요</p>
+    </div>
+
+    <!-- lotto-ball을 보여주는 유리 카드 -->
+    <div class="glass-card intro">
+      <div id="ball-list">
+        <!-- winning번호 6칸 + bonusNumber 1칸은 자바스크립트에서 생성됨 -->
+      </div>
+      <div id="bonus-label">BONUS</div>
+
+      <!-- 색상 legend -->
+      <div id="legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ball-1-10)"></span>1-10</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ball-11-20)"></span>11-20</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ball-21-30)"></span>21-30</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ball-31-40)"></span>31-40</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--ball-41-45)"></span>41-45</div>
+      </div>
+    </div>
+
+    <!-- 추첨 버튼 -->
+    <button id="drawBtn" class="intro">번호 추첨하기</button>
+
+    <!-- result trophy 카드 -->
+    <div id="resultCard" class="intro">
+      <div class="trophy">🏆</div>
+      <h2>행운의 번호가 완성됐어요!</h2>
+      <p>오늘도 좋은 하루 되세요 :)</p>
+      <button id="retryBtn" class="retry-button" type="button" onclick="handleRetryDrawing(event)">다시 추첨하기</button>
+    </div>
+
+    <!-- 추첨 기록 저장 카드 -->
+    <div id="historyCard" class="intro">
+      <div class="history-header">
+        <h3>저장된 추첨 번호</h3>
+        <span>최근 5회</span>
+      </div>
+      <div id="historyList">
+        <div class="history-empty">아직 저장된 번호가 없어요.</div>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+  // ============================================
+  // 화면에 보여줄 ball(볼) 요소들을 미리 만들어두는 부분
+  // ============================================
+  var ballListElement = document.getElementById('ball-list');
+  var openCount = 6;          // winningNumbers 개수
+  var emptyElementArray = [];  // 만들어진 ball DOM을 저장해두는 배열
+
+  // winningNumbers ball 6개 생성
+  for (var i = 0; i < openCount; i++) {
+    var ball = document.createElement('div');
+    ball.className = 'lotto-ball';
+    ball.innerHTML = '<span>?</span>';
+    ballListElement.appendChild(ball);
+    emptyElementArray.push(ball);
+  }
+
+  // bonus number ball 1개 생성 (조금 더 크게 표시)
+  var bonusBall = document.createElement('div');
+  bonusBall.className = 'lotto-ball bonus';
+  bonusBall.innerHTML = '<span>?</span>';
+  ballListElement.appendChild(bonusBall);
+
+  // ============================================
+  // 숫자에 맞는 색상(CSS 변수)을 반환하는 함수
+  // ============================================
+  function getNumberColor(number) {
+    if (number <= 10) return 'var(--ball-1-10)';
+    if (number <= 20) return 'var(--ball-11-20)';
+    if (number <= 30) return 'var(--ball-21-30)';
+    if (number <= 40) return 'var(--ball-31-40)';
+    return 'var(--ball-41-45)';
+  }
+
+  // ============================================
+  // 특정 ball 요소 주변에 작은 sparkle(glint임) 효과를 만드는 함수
+  // ============================================
+  function sparkleGeneration(parentEmptyElement) {
+    for (var k = 0; k < 5; k++) {
+      var sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      // sparkle이 사방으로 흩어지도록 랜덤 방향 지정
+      var angle = Math.random() * Math.PI * 2;
+      var distance = 18 + Math.random() * 18;
+      sparkle.style.setProperty('--sx', Math.cos(angle) * distance + 'px');
+      sparkle.style.setProperty('--sy', Math.sin(angle) * distance + 'px');
+      sparkle.style.left = (parentEmptyElement.offsetLeft + parentEmptyElement.offsetWidth / 2) + 'px';
+      sparkle.style.top = (parentEmptyElement.offsetTop + parentEmptyElement.offsetHeight / 2) + 'px';
+      ballListElement.appendChild(sparkle);
+      // 애니메이션이 끝나면 sparkle 요소를 화면에서 제거(메모리 정리)
+      setTimeout((function (el) { return function () { el.remove(); }; })(sparkle), 850);
+    }
+  }
+
+  // ============================================
+  // 버튼 클릭 시 wave(Ripple)을 만들어주는 함수
+  // ============================================
+  function buttonRippleGeneration(buttonElement) {
+    var ripple = document.createElement('div');
+    ripple.className = 'button-ripple';
+    buttonElement.appendChild(ripple);
+    setTimeout(function () { ripple.remove(); }, 700);
+
+    var glow = document.createElement('div');
+    glow.className = 'glow-pulse';
+    buttonElement.appendChild(glow);
+    setTimeout(function () { glow.remove(); }, 600);
+  }
+
+  // ============================================
+  // result 카드 intro 시 사방으로 퍼지는 Glass Burst 효과
+  // ============================================
+  function resultBurstGeneration(cardElement) {
+    cardElement.classList.add('burst-play');
+    for (var k = 0; k < 16; k++) {
+      var fragment = document.createElement('div');
+      fragment.className = 'burst-fragment';
+      var angle = (Math.PI * 2 * k) / 16;
+      var distance = 60 + Math.random() * 40;
+      fragment.style.setProperty('--bx', Math.cos(angle) * distance + 'px');
+      fragment.style.setProperty('--by', Math.sin(angle) * distance + 'px');
+      cardElement.appendChild(fragment);
+      setTimeout((function (el) { return function () { el.remove(); }; })(fragment), 950);
+    }
+  }
+
+
+  // 로컬 HTML 파일로 열었을 때도 테스트할 수 있도록 하는 예비 추첨 함수
+  function createLocalLottoResult() {
+    var numbers = [];
+    for (var n = 1; n <= 45; n++) numbers.push(n);
+
+    for (var i = numbers.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var temp = numbers[i];
+      numbers[i] = numbers[j];
+      numbers[j] = temp;
+    }
+
+    var winningNumbers = numbers.slice(0, 6).sort(function (a, b) { return a - b; });
+    var bonusNumber = numbers[6];
+    return { winningNumbers: winningNumbers, bonusNumber: bonusNumber };
+  }
+
+
+
+  // ============================================
+  // 추첨 완료 번호 저장 및 기록 렌더링
+  // ============================================
+  function formatSavedDate(isoText) {
+    var date = new Date(isoText);
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var day = String(date.getDate()).padStart(2, '0');
+    var hour = String(date.getHours()).padStart(2, '0');
+    var minute = String(date.getMinutes()).padStart(2, '0');
+    return month + '/' + day + '<br>' + hour + ':' + minute;
+  }
+
+  function createMiniBall(number) {
+    var ball = document.createElement('span');
+    ball.className = 'history-mini-ball';
+    ball.textContent = number;
+    ball.style.background = 'radial-gradient(circle at 32% 28%, rgba(255,255,255,0.92), rgba(255,255,255,0) 42%), ' + getNumberColor(number);
+    return ball;
+  }
+
+  function renderDrawHistory(records) {
+    savedHistory = Array.isArray(records) ? records.slice(0, 5) : [];
+    historyList.innerHTML = '';
+
+    if (savedHistory.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'history-empty';
+      empty.textContent = '아직 저장된 번호가 없어요.';
+      historyList.appendChild(empty);
+      return;
+    }
+
+    savedHistory.forEach(function (record) {
+      var item = document.createElement('div');
+      item.className = 'history-item';
+
+      var date = document.createElement('div');
+      date.className = 'history-date';
+      date.innerHTML = formatSavedDate(record.createdAt);
+
+      var numbersWrap = document.createElement('div');
+      numbersWrap.className = 'history-numbers';
+      record.winningNumbers.forEach(function (number) {
+        numbersWrap.appendChild(createMiniBall(number));
+      });
+      var plus = document.createElement('span');
+      plus.className = 'history-plus';
+      plus.textContent = '+';
+      numbersWrap.appendChild(plus);
+      numbersWrap.appendChild(createMiniBall(record.bonusNumber));
+
+      item.appendChild(date);
+      item.appendChild(numbersWrap);
+      historyList.appendChild(item);
+    });
+  }
+
+  function loadLocalHistory() {
+    try {
+      var saved = JSON.parse(localStorage.getItem('luckyLottoHistory') || '[]');
+      renderDrawHistory(saved);
+    } catch (error) {
+      renderDrawHistory([]);
+    }
+  }
+
+  function saveLocalHistory(record) {
+    var nextHistory = [record].concat(savedHistory).slice(0, 5);
+    localStorage.setItem('luckyLottoHistory', JSON.stringify(nextHistory));
+    renderDrawHistory(nextHistory);
+  }
+
+  function saveDrawRecord(winningNumbers, bonusNumber) {
+    var record = {
+      createdAt: new Date().toISOString(),
+      winningNumbers: winningNumbers,
+      bonusNumber: bonusNumber
+    };
+
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function (records) {
+          renderDrawHistory(records);
+        })
+        .withFailureHandler(function () {
+          saveLocalHistory(record);
+        })
+        .saveLottoResult(record);
+    } else {
+      saveLocalHistory(record);
+    }
+  }
+
+  function loadSavedHistory() {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function (records) {
+          renderDrawHistory(records);
+        })
+        .withFailureHandler(function () {
+          loadLocalHistory();
+        })
+        .getLottoHistory();
+    } else {
+      loadLocalHistory();
+    }
+  }
+
+  // ============================================
+  // "번호 추첨" 버튼 클릭 이벤트 (total 추첨 흐름을 담당)
+  // ============================================
+  var drawBtn = document.getElementById('drawBtn');
+  var resultCard = document.getElementById('resultCard');
+  var retryBtn = document.getElementById('retryBtn');
+  var historyList = document.getElementById('historyList');
+  var savedHistory = [];
+  var drawingInProgress = false; // 중복 클릭 방지용 플래그
+
+  function startDrawing() {
+    if (drawingInProgress) return; // 이미 추첨 중이면 무시
+    drawingInProgress = true;
+
+    // 버튼 스프링(눌림) 애니메이션 + glow 펄스 + ripple 효과
+    drawBtn.classList.remove('pressed');
+    void drawBtn.offsetWidth; // 리플로우를 강제로 발생시켜 애니메이션 재시작
+    drawBtn.classList.add('pressed');
+    buttonRippleGeneration(drawBtn);
+
+    // result 카드는 새로운 추첨이 시작되면 일단 숨김
+    resultCard.classList.remove('show');
+    resultCard.classList.remove('burst-play');
+
+    // 모든 ball을 "회전 중" 상태로 되돌리고 물음표로 초기화
+    var allballs = emptyElementArray.concat([bonusBall]);
+    allballs.forEach(function (ball) {
+      ball.classList.remove('reveal', 'shine');
+      ball.classList.add('rolling');
+      ball.style.backgroundColor = '#c9d2da'; // 회전 중에는 중립 회색으로 표시
+      ball.querySelector('span').textContent = '?';
+    });
+
+    // ============================================
+    // 서버(Code.gs)에 drawLottoNumbers() 함수 실행을 요청
+    // result가 오면 successHandler가 실행됨
+    // ============================================
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function (result) {
+          // 서버에서 받은 result: { winningNumbers:[...6개...], bonusNumber: 숫자 }
+          resultBallStart(result.winningNumbers, result.bonusNumber);
+        })
+        .withFailureHandler(function (error) {
+          // 혹시 서버 오류가 나면 사용자에게 알려줌
+          alert('번호 추첨 중 문제가 발생했어요: ' + error.message);
+          allballs.forEach(function (ball) { ball.classList.remove('rolling'); });
+          drawingInProgress = false;
+        })
+        .drawLottoNumbers();
+    } else {
+      // 로컬 HTML 미리보기용 예비 실행 코드
+      var localResult = createLocalLottoResult();
+      resultBallStart(localResult.winningNumbers, localResult.bonusNumber);
+    }
+  }
+
+  var lastRetryTapTime = 0;
+
+  function handleRetryDrawing(event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    var now = Date.now();
+    if (now - lastRetryTapTime < 450) return;
+    lastRetryTapTime = now;
+
+    startDrawing();
+  }
+
+  if (retryBtn) {
+    retryBtn.onclick = handleRetryDrawing;
+    retryBtn.addEventListener('pointerup', handleRetryDrawing);
+    retryBtn.addEventListener('touchend', handleRetryDrawing, { passive:false });
+  }
+
+  drawBtn.addEventListener('click', function (event) {
+    event.preventDefault();
+    startDrawing();
+  });
+
+  // ============================================
+  // 서버에서 받은 번호를 화면에 순차적으로 ball개하는 함수
+  // 회전 속도가 점점 빨라지다가, 하나씩 번호가 확정되는 연출
+  // ============================================
+  function resultBallStart(winningNumbers, bonusNumber) {
+    var totalnumber = winningNumbers.concat([bonusNumber]);
+    var allballs = emptyElementArray.concat([bonusBall]);
+
+    // 회전이 점점 빨라지는 느낌을 주기 위해 약 900ms 동안 회전만 진행
+    setTimeout(function () {
+      totalnumber.forEach(function (number, index) {
+        // 0.35초 간격으로 ball 하나씩 순차 ball개 (bonusBall은 마지막에 조금 더 늦게)
+        var delaytime = index * 380 + (index === totalnumber.length - 1 ? 250 : 0);
+
+        setTimeout(function () {
+          var ball = allballs[index];
+          ball.classList.remove('rolling');
+          ball.style.backgroundColor = getNumberColor(number);
+          ball.querySelector('span').textContent = number;
+
+          // Blur→Focus, Scale, Opacity 애니메이션 실행
+          ball.classList.add('reveal');
+          // intro 직후 Glass Shine이 한 번 스쳐 지나가도록 처리
+          setTimeout(function () { ball.classList.add('shine'); }, 80);
+          // 작은 sparkle 효과
+          sparkleGeneration(ball);
+
+          // 마지막(bonus) ball까지 다 나왔다면 result 카드를 띄움
+          if (index === totalnumber.length - 1) {
+            setTimeout(function () {
+              resultCard.classList.add('show');
+              resultBurstGeneration(resultCard);
+              saveDrawRecord(winningNumbers, bonusNumber);
+              drawingInProgress = false; // 다시 버튼을 누를 수 있게 허용
+            }, 500);
+          }
+        }, delaytime);
+      });
+    }, 900);
+  }
+
+  // ============================================
+  // 배경 패럴랙스: 마우스(또는 기기 기울임) 움직임에 따라
+  // 배경 레이어가 아주 조금씩 반대로 움직여 입체감을 줌
+  // ============================================
+  var bgLayer = document.getElementById('bgLayer');
+  window.addEventListener('mousemove', function (e) {
+    var widthRatio = (e.clientX / window.innerWidth) - 0.5;
+    var heightRatio = (e.clientY / window.innerHeight) - 0.5;
+    // 아주 미세하게만 이동시켜 "느리게 움직이는" 느낌 유지
+    bgLayer.style.transform =
+      'translate(' + (widthRatio * -14) + 'px,' + (heightRatio * -14) + 'px)';
+  });
+
+  loadSavedHistory();
+</script>
+</body>
+</html>
